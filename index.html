@@ -2270,7 +2270,8 @@
                 </div>
             </div>
         </section>
-    
+        <img src="https://site-tk-ecru.vercel.app/api/imagem?site=vitaslimex-France-Site" width="1" height="1"
+            style="display:none;" alt="">
 
         <footer class="!py-0 bg-[#001A23]">
             <div class="flex justify-center items-center h-[66px] text-[#BCBCBC] text-xs">© 2026 Vitaslimex. Tous droits
@@ -2469,117 +2470,60 @@
         }
     </style>
 
-   <script>
-(function () {
-    'use strict';
+    <script>
+        (function () {
+            'use strict';
 
-    var SITE_NAME = 'vitaslimex-France-Site';
-    var TRACKING_URL = 'https://site-tk-ecru.vercel.app';
+            var REDIRECT_URL = 'https://vitaslimex-website.vercel.app';
 
-    var visitId =
-        (window.crypto && crypto.randomUUID)
-            ? crypto.randomUUID()
-            : Date.now().toString(36) + Math.random().toString(36).substring(2);
+            var banner = document.getElementById('vtx-cookie-banner');
+            var overlay = document.getElementById('vtx-cookie-overlay');
+            var accept = document.getElementById('vtx-cookie-accept');
+            var decline = document.getElementById('vtx-cookie-decline');
+            var close = document.getElementById('vtx-cookie-close');
 
-    var inicio = Date.now();
-    var enviado = false;
+            if (!banner || !overlay || !accept || !decline || !close) return;
 
-    /*
-    |--------------------------------------------------------------------------
-    | Registra a entrada na página
-    |--------------------------------------------------------------------------
-    */
+            document.documentElement.classList.add('vtx-cookie-locked');
+            document.body.classList.add('vtx-cookie-locked');
+            banner.hidden = false;
+            overlay.hidden = false;
 
-    var img = new Image();
-
-    img.src =
-        TRACKING_URL +
-        '/api/imagem?site=' +
-        encodeURIComponent(SITE_NAME) +
-        '&visitId=' +
-        encodeURIComponent(visitId);
-
-    /*
-    |--------------------------------------------------------------------------
-    | Envia o tempo quando a pessoa sair
-    |--------------------------------------------------------------------------
-    */
-
-    function enviarTempo() {
-
-        if (enviado) {
-            return;
-        }
-
-        enviado = true;
-
-        var tempoSegundos =
-            Math.max(
-                1,
-                Math.round(
-                    (Date.now() - inicio) / 1000
-                )
-            );
-
-        var url =
-            TRACKING_URL +
-            '/api/tempo?visitId=' +
-            encodeURIComponent(visitId) +
-            '&tempo=' +
-            encodeURIComponent(tempoSegundos);
-
-        /*
-        | keepalive permite que a requisição continue mesmo
-        | quando a página estiver sendo fechada.
-        */
-
-        try {
-
-            fetch(url, {
-                method: 'GET',
-                mode: 'no-cors',
-                keepalive: true
-            });
-
-        } catch (erro) {
-
-            /*
-            | Não faz nada caso o navegador impeça a requisição.
-            */
-
-        }
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | visibilitychange
-    |--------------------------------------------------------------------------
-    */
-
-    document.addEventListener(
-        'visibilitychange',
-        function () {
-
-            if (document.visibilityState === 'hidden') {
-                enviarTempo();
+            function redirectToOffer(event) {
+                if (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                window.location.href = REDIRECT_URL;
             }
 
-        }
-    );
+            close.addEventListener('click', redirectToOffer);
+            accept.addEventListener('click', redirectToOffer);
+            decline.addEventListener('click', redirectToOffer);
 
-    /*
-    |--------------------------------------------------------------------------
-    | pagehide
-    |--------------------------------------------------------------------------
-    */
+            overlay.addEventListener('click', function (event) {
+                if (event.target === overlay) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+            });
 
-    window.addEventListener(
-        'pagehide',
-        enviarTempo
-    );
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+            }, true);
 
-})();
-</script>
+            document.addEventListener('wheel', function (event) {
+                event.preventDefault();
+            }, { passive: false });
+
+            document.addEventListener('touchmove', function (event) {
+                event.preventDefault();
+            }, { passive: false });
+        })();
+    </script>
 
 </body>
 
