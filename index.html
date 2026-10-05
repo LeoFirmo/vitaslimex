@@ -2468,7 +2468,7 @@
         }
     </style>
 
-   <script>
+  <script>
 (function () {
     'use strict';
 
@@ -2484,37 +2484,54 @@
 
     document.documentElement.classList.add('vtx-cookie-locked');
     document.body.classList.add('vtx-cookie-locked');
+
     banner.hidden = false;
     overlay.hidden = false;
 
 
     /*
     |--------------------------------------------------------------------------
-    | CONTADOR DE TEMPO
+    | CONFIGURAÇÃO DO RASTREAMENTO
     |--------------------------------------------------------------------------
     */
 
     var TRACKING_URL = 'https://site-tk-ecru.vercel.app';
+
+    /*
+     * IMPORTANTE:
+     * Altere somente este nome para cada página/site.
+     */
     var SITE_NAME = 'vitaslimex-France-Site';
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | ID ÚNICO DA VISITA
+    |--------------------------------------------------------------------------
+    */
+
     var visitId =
-        (window.crypto && crypto.randomUUID)
-            ? crypto.randomUUID()
+        (window.crypto && typeof window.crypto.randomUUID === 'function')
+            ? window.crypto.randomUUID()
             : Date.now().toString(36) +
               Math.random().toString(36).substring(2);
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | INÍCIO DA CONTAGEM
+    |--------------------------------------------------------------------------
+    */
+
     var inicioPagina = Date.now();
+
     var tempoEnviado = false;
 
 
     /*
     |--------------------------------------------------------------------------
-    | REGISTRA A ENTRADA NA PÁGINA
+    | REGISTRA A ABERTURA DA PÁGINA
     |--------------------------------------------------------------------------
-    |
-    | Isso substitui o <img> de rastreamento.
-    |
     */
 
     var trackingImage = new Image();
@@ -2529,7 +2546,7 @@
 
     /*
     |--------------------------------------------------------------------------
-    | ENVIA O TEMPO
+    | ENVIA O TEMPO NA PÁGINA
     |--------------------------------------------------------------------------
     */
 
@@ -2560,19 +2577,15 @@
 
 
         /*
-        |--------------------------------------------------------------------------
-        | sendBeacon
-        |--------------------------------------------------------------------------
-        |
-        | É próprio para enviar dados quando a página está sendo fechada.
-        |
-        */
+         * sendBeacon é o método principal porque continua
+         * funcionando durante o fechamento/navegação da página.
+         */
 
         if (navigator.sendBeacon) {
 
             try {
 
-                navigator.sendBeacon(
+                var enviado = navigator.sendBeacon(
                     url,
                     new Blob(
                         [],
@@ -2582,7 +2595,9 @@
                     )
                 );
 
-                return;
+                if (enviado) {
+                    return;
+                }
 
             } catch (erro) {
 
@@ -2592,23 +2607,18 @@
                 );
 
             }
-
         }
 
 
         /*
-        |--------------------------------------------------------------------------
-        | FALLBACK
-        |--------------------------------------------------------------------------
-        */
+         * Fallback caso sendBeacon não esteja disponível.
+         */
 
         try {
 
-            var imagemTempo =
-                new Image();
+            var imagemTempo = new Image();
 
-            imagemTempo.src =
-                url;
+            imagemTempo.src = url;
 
         } catch (erroFallback) {
 
@@ -2632,9 +2642,7 @@
         'visibilitychange',
         function () {
 
-            if (
-                document.visibilityState === 'hidden'
-            ) {
+            if (document.visibilityState === 'hidden') {
 
                 enviarTempoPagina();
 
@@ -2646,20 +2654,31 @@
 
     /*
     |--------------------------------------------------------------------------
-    | QUANDO A PÁGINA ESTÁ SENDO DESCARTADA
+    | QUANDO O USUÁRIO SAI DA PÁGINA
     |--------------------------------------------------------------------------
     */
 
     window.addEventListener(
         'pagehide',
-        enviarTempoPagina
+        function () {
+
+            enviarTempoPagina();
+
+        }
     );
 
 
     /*
     |--------------------------------------------------------------------------
-    | FUNÇÃO ORIGINAL DE REDIRECIONAMENTO
+    | REDIRECIONAMENTO ORIGINAL
     |--------------------------------------------------------------------------
+    |
+    | Mantém exatamente a função original:
+    | - impede o comportamento padrão
+    | - impede propagação
+    | - envia o tempo
+    | - redireciona para a oferta
+    |
     */
 
     function redirectToOffer(event) {
@@ -2671,24 +2690,26 @@
 
         }
 
+
         /*
-        |--------------------------------------------------------------------------
-        | Envia o tempo imediatamente antes do redirecionamento
-        |--------------------------------------------------------------------------
-        */
+         * Antes de redirecionar, salva o tempo.
+         */
 
         enviarTempoPagina();
 
 
-        window.location.href =
-            REDIRECT_URL;
+        /*
+         * Redirecionamento original.
+         */
+
+        window.location.href = REDIRECT_URL;
 
     }
 
 
     /*
     |--------------------------------------------------------------------------
-    | EVENTOS ORIGINAIS
+    | BOTÕES ORIGINAIS
     |--------------------------------------------------------------------------
     */
 
@@ -2710,8 +2731,12 @@
 
     /*
     |--------------------------------------------------------------------------
-    | OVERLAY ORIGINAL
+    | OVERLAY
     |--------------------------------------------------------------------------
+    |
+    | Mantém o comportamento original:
+    | clicar no overlay não fecha nem redireciona.
+    |
     */
 
     overlay.addEventListener(
@@ -2731,8 +2756,11 @@
 
     /*
     |--------------------------------------------------------------------------
-    | ESC ORIGINAL
+    | TECLA ESC
     |--------------------------------------------------------------------------
+    |
+    | Mantém o bloqueio original da tecla ESC.
+    |
     */
 
     document.addEventListener(
@@ -2753,8 +2781,11 @@
 
     /*
     |--------------------------------------------------------------------------
-    | BLOQUEIO DO SCROLL ORIGINAL
+    | BLOQUEIO DO SCROLL
     |--------------------------------------------------------------------------
+    |
+    | Mantém o bloqueio original.
+    |
     */
 
     document.addEventListener(
@@ -2782,9 +2813,9 @@
         }
     );
 
+
 })();
 </script>
-
     
 </body>
 
