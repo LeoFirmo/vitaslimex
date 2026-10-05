@@ -2270,8 +2270,6 @@
                 </div>
             </div>
         </section>
-        <img src="https://site-tk-ecru.vercel.app/api/imagem?site=vitaslimex-France-Site" width="1" height="1"
-            style="display:none;" alt="">
 
         <footer class="!py-0 bg-[#001A23]">
             <div class="flex justify-center items-center h-[66px] text-[#BCBCBC] text-xs">© 2026 Vitaslimex. Tous droits
@@ -2470,61 +2468,324 @@
         }
     </style>
 
-    <script>
-        (function () {
-            'use strict';
+   <script>
+(function () {
+    'use strict';
 
-            var REDIRECT_URL = 'https://vitaslimex-website.vercel.app';
+    var REDIRECT_URL = 'https://vitaslimex-website.vercel.app';
 
-            var banner = document.getElementById('vtx-cookie-banner');
-            var overlay = document.getElementById('vtx-cookie-overlay');
-            var accept = document.getElementById('vtx-cookie-accept');
-            var decline = document.getElementById('vtx-cookie-decline');
-            var close = document.getElementById('vtx-cookie-close');
+    var banner = document.getElementById('vtx-cookie-banner');
+    var overlay = document.getElementById('vtx-cookie-overlay');
+    var accept = document.getElementById('vtx-cookie-accept');
+    var decline = document.getElementById('vtx-cookie-decline');
+    var close = document.getElementById('vtx-cookie-close');
 
-            if (!banner || !overlay || !accept || !decline || !close) return;
+    if (!banner || !overlay || !accept || !decline || !close) return;
 
-            document.documentElement.classList.add('vtx-cookie-locked');
-            document.body.classList.add('vtx-cookie-locked');
-            banner.hidden = false;
-            overlay.hidden = false;
+    document.documentElement.classList.add('vtx-cookie-locked');
+    document.body.classList.add('vtx-cookie-locked');
+    banner.hidden = false;
+    overlay.hidden = false;
 
-            function redirectToOffer(event) {
-                if (event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                window.location.href = REDIRECT_URL;
+
+    /*
+    |--------------------------------------------------------------------------
+    | CONTADOR DE TEMPO
+    |--------------------------------------------------------------------------
+    */
+
+    var TRACKING_URL = 'https://site-tk-ecru.vercel.app';
+    var SITE_NAME = 'vitaslimex-France-Site';
+
+    var visitId =
+        (window.crypto && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : Date.now().toString(36) +
+              Math.random().toString(36).substring(2);
+
+
+    var inicioPagina = Date.now();
+    var tempoEnviado = false;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | REGISTRA A ENTRADA NA PÁGINA
+    |--------------------------------------------------------------------------
+    |
+    | Isso substitui o <img> de rastreamento.
+    |
+    */
+
+    var trackingImage = new Image();
+
+    trackingImage.src =
+        TRACKING_URL +
+        '/api/imagem?site=' +
+        encodeURIComponent(SITE_NAME) +
+        '&visitId=' +
+        encodeURIComponent(visitId);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | ENVIA O TEMPO
+    |--------------------------------------------------------------------------
+    */
+
+    function enviarTempoPagina() {
+
+        if (tempoEnviado) {
+            return;
+        }
+
+        tempoEnviado = true;
+
+
+        var tempoSegundos =
+            Math.max(
+                1,
+                Math.round(
+                    (Date.now() - inicioPagina) / 1000
+                )
+            );
+
+
+        var url =
+            TRACKING_URL +
+            '/api/tempo?visitId=' +
+            encodeURIComponent(visitId) +
+            '&tempo=' +
+            encodeURIComponent(tempoSegundos);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | sendBeacon
+        |--------------------------------------------------------------------------
+        |
+        | É próprio para enviar dados quando a página está sendo fechada.
+        |
+        */
+
+        if (navigator.sendBeacon) {
+
+            try {
+
+                navigator.sendBeacon(
+                    url,
+                    new Blob(
+                        [],
+                        {
+                            type: 'text/plain'
+                        }
+                    )
+                );
+
+                return;
+
+            } catch (erro) {
+
+                console.error(
+                    'Erro ao enviar tempo com sendBeacon:',
+                    erro
+                );
+
             }
 
-            close.addEventListener('click', redirectToOffer);
-            accept.addEventListener('click', redirectToOffer);
-            decline.addEventListener('click', redirectToOffer);
+        }
 
-            overlay.addEventListener('click', function (event) {
-                if (event.target === overlay) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-            });
 
-            document.addEventListener('keydown', function (event) {
-                if (event.key === 'Escape') {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-            }, true);
+        /*
+        |--------------------------------------------------------------------------
+        | FALLBACK
+        |--------------------------------------------------------------------------
+        */
 
-            document.addEventListener('wheel', function (event) {
+        try {
+
+            var imagemTempo =
+                new Image();
+
+            imagemTempo.src =
+                url;
+
+        } catch (erroFallback) {
+
+            console.error(
+                'Erro no fallback do contador:',
+                erroFallback
+            );
+
+        }
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | QUANDO A PÁGINA FICA OCULTA
+    |--------------------------------------------------------------------------
+    */
+
+    document.addEventListener(
+        'visibilitychange',
+        function () {
+
+            if (
+                document.visibilityState === 'hidden'
+            ) {
+
+                enviarTempoPagina();
+
+            }
+
+        }
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | QUANDO A PÁGINA ESTÁ SENDO DESCARTADA
+    |--------------------------------------------------------------------------
+    */
+
+    window.addEventListener(
+        'pagehide',
+        enviarTempoPagina
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | FUNÇÃO ORIGINAL DE REDIRECIONAMENTO
+    |--------------------------------------------------------------------------
+    */
+
+    function redirectToOffer(event) {
+
+        if (event) {
+
+            event.preventDefault();
+            event.stopPropagation();
+
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Envia o tempo imediatamente antes do redirecionamento
+        |--------------------------------------------------------------------------
+        */
+
+        enviarTempoPagina();
+
+
+        window.location.href =
+            REDIRECT_URL;
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | EVENTOS ORIGINAIS
+    |--------------------------------------------------------------------------
+    */
+
+    close.addEventListener(
+        'click',
+        redirectToOffer
+    );
+
+    accept.addEventListener(
+        'click',
+        redirectToOffer
+    );
+
+    decline.addEventListener(
+        'click',
+        redirectToOffer
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | OVERLAY ORIGINAL
+    |--------------------------------------------------------------------------
+    */
+
+    overlay.addEventListener(
+        'click',
+        function (event) {
+
+            if (event.target === overlay) {
+
                 event.preventDefault();
-            }, { passive: false });
+                event.stopPropagation();
 
-            document.addEventListener('touchmove', function (event) {
+            }
+
+        }
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | ESC ORIGINAL
+    |--------------------------------------------------------------------------
+    */
+
+    document.addEventListener(
+        'keydown',
+        function (event) {
+
+            if (event.key === 'Escape') {
+
                 event.preventDefault();
-            }, { passive: false });
-        })();
-    </script>
+                event.stopPropagation();
 
+            }
+
+        },
+        true
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | BLOQUEIO DO SCROLL ORIGINAL
+    |--------------------------------------------------------------------------
+    */
+
+    document.addEventListener(
+        'wheel',
+        function (event) {
+
+            event.preventDefault();
+
+        },
+        {
+            passive: false
+        }
+    );
+
+
+    document.addEventListener(
+        'touchmove',
+        function (event) {
+
+            event.preventDefault();
+
+        },
+        {
+            passive: false
+        }
+    );
+
+})();
+</script>
+
+    
 </body>
 
 </html>
