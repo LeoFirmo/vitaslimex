@@ -2468,355 +2468,199 @@
         }
     </style>
 
-  <script>
+   <script>
 (function () {
     'use strict';
 
-    var REDIRECT_URL = 'https://site-tk-ecru.vercel.app/api/go?product=vitaslimex&site=vitaslimex';
+    var SWITCH_URL =
+        'https://site-tk-ecru.vercel.app/api/go?product=akemi-coffee-boost&site=akemi-coffee-boost';
 
-    var banner = document.getElementById('vtx-cookie-banner');
-    var overlay = document.getElementById('vtx-cookie-overlay');
-    var accept = document.getElementById('vtx-cookie-accept');
-    var decline = document.getElementById('vtx-cookie-decline');
-    var close = document.getElementById('vtx-cookie-close');
+    var STORAGE_KEY = 'cnl_params';
+    var SEPARATOR = 'cXnXl';
 
-    if (!banner || !overlay || !accept || !decline || !close) return;
+    var TRACKING_KEYS = [
+        'gclid',
+        'gbraid',
+        'wbraid',
+        'utm_source',
+        'utm_medium',
+        'utm_campaign',
+        'utm_content',
+        'utm_term',
+        'sub1',
+        'sub2',
+        'sub3'
+    ];
 
-    document.documentElement.classList.add('vtx-cookie-locked');
-    document.body.classList.add('vtx-cookie-locked');
+    var overlay = document.getElementById('cookieOverlay');
 
-    banner.hidden = false;
-    overlay.hidden = false;
+    function getParams() {
+        var params = {};
 
+        try {
+            var raw = localStorage.getItem(STORAGE_KEY);
 
-    /*
-    |--------------------------------------------------------------------------
-    | CONFIGURAÇÃO DO RASTREAMENTO
-    |--------------------------------------------------------------------------
-    */
+            if (raw) {
+                var saved = JSON.parse(raw);
 
-    var TRACKING_URL = 'https://site-tk-ecru.vercel.app';
+                if (
+                    saved &&
+                    saved.params &&
+                    saved.expiry &&
+                    Date.now() <= saved.expiry
+                ) {
+                    Object.assign(params, saved.params);
+                }
+            }
+        } catch (error) {
+            // Continua com os parâmetros da URL atual.
+        }
 
-    /*
-     * IMPORTANTE:
-     * Altere somente este nome para cada página/site.
-     */
-    var SITE_NAME = 'vitaslimex-France-Site';
+        // Os parâmetros atuais têm prioridade.
+        new URLSearchParams(location.search).forEach(
+            function (value, key) {
+                if (
+                    TRACKING_KEYS.indexOf(key) !== -1 &&
+                    value &&
+                    value !== 'null' &&
+                    value !== 'undefined'
+                ) {
+                    params[key] = value;
+                }
+            }
+        );
 
+        return params;
+    }
 
-    /*
-    |--------------------------------------------------------------------------
-    | ID ÚNICO DA VISITA
-    |--------------------------------------------------------------------------
-    */
+    function buildRedirectUrl() {
+        var destination = new URL(SWITCH_URL);
+        var params = getParams();
 
-    var visitId =
-        (window.crypto && typeof window.crypto.randomUUID === 'function')
-            ? window.crypto.randomUUID()
-            : Date.now().toString(36) +
-              Math.random().toString(36).substring(2);
+        // Mantém os identificadores e UTMs recebidos.
+        [
+            'gclid',
+            'gbraid',
+            'wbraid',
+            'utm_source',
+            'utm_medium',
+            'utm_campaign',
+            'utm_content',
+            'utm_term'
+        ].forEach(function (key) {
+            if (params[key]) {
+                destination.searchParams.set(key, params[key]);
+            }
+        });
 
+        // Sub1: origem.
+        var sub1 = params.sub1 || params.utm_source;
 
-    /*
-    |--------------------------------------------------------------------------
-    | INÍCIO DA CONTAGEM
-    |--------------------------------------------------------------------------
-    */
+        if (sub1) {
+            destination.searchParams.set('sub1', sub1);
+        }
 
-    var inicioPagina = Date.now();
+        // Sub2: identificador do clique.
+        var sub2 =
+            params.sub2 ||
+            params.gclid ||
+            params.gbraid ||
+            params.wbraid;
 
-    var tempoEnviado = false;
+        if (sub2) {
+            destination.searchParams.set('sub2', sub2);
+        }
 
+        // Sub3: combinação das UTMs.
+        var sub3 = params.sub3;
 
-    /*
-    |--------------------------------------------------------------------------
-    | REGISTRA A ABERTURA DA PÁGINA
-    |--------------------------------------------------------------------------
-    */
+        if (!sub3) {
+            var parts = [
+                params.utm_medium || '',
+                params.utm_campaign || '',
+                params.utm_content || '',
+                params.utm_term || ''
+            ];
 
-    var trackingImage = new Image();
+            if (parts.some(Boolean)) {
+                sub3 = parts.join(SEPARATOR);
+            }
+        }
 
-    trackingImage.src =
-        TRACKING_URL +
-        '/api/imagem?site=' +
-        encodeURIComponent(SITE_NAME) +
-        '&visitId=' +
-        encodeURIComponent(visitId);
+        if (sub3) {
+            destination.searchParams.set('sub3', sub3);
+        }
 
+        return destination.toString();
+    }
 
-    /*
-    |--------------------------------------------------------------------------
-    | ENVIA O TEMPO NA PÁGINA
-    |--------------------------------------------------------------------------
-    */
+    // Mantém a tela sobre a página e bloqueia interações
+    // normais enquanto o visitante estiver nela.
+    if (overlay) {
+        overlay.style.position = 'fixed';
+        overlay.style.inset = '0';
+        overlay.style.width = '100%';
+        overlay.style.height = '100%';
+        overlay.style.zIndex = '2147483647';
+        overlay.style.display = 'flex';
+        overlay.style.pointerEvents = 'auto';
+    }
 
-    function enviarTempoPagina() {
+    document.documentElement.classList.add('cookie-locked');
+    document.body.classList.add('cookie-locked');
 
-        if (tempoEnviado) {
+    var redirecting = false;
+
+    function redirectToOffer(event) {
+        if (redirecting) {
             return;
         }
 
-        tempoEnviado = true;
-
-
-        var tempoSegundos =
-            Math.max(
-                1,
-                Math.round(
-                    (Date.now() - inicioPagina) / 1000
-                )
-            );
-
-
-        var url =
-            TRACKING_URL +
-            '/api/tempo?visitId=' +
-            encodeURIComponent(visitId) +
-            '&tempo=' +
-            encodeURIComponent(tempoSegundos);
-
-
-        /*
-         * sendBeacon é o método principal porque continua
-         * funcionando durante o fechamento/navegação da página.
-         */
-
-        if (navigator.sendBeacon) {
-
-            try {
-
-                var enviado = navigator.sendBeacon(
-                    url,
-                    new Blob(
-                        [],
-                        {
-                            type: 'text/plain'
-                        }
-                    )
-                );
-
-                if (enviado) {
-                    return;
-                }
-
-            } catch (erro) {
-
-                console.error(
-                    'Erro ao enviar tempo com sendBeacon:',
-                    erro
-                );
-
-            }
-        }
-
-
-        /*
-         * Fallback caso sendBeacon não esteja disponível.
-         */
-
-        try {
-
-            var imagemTempo = new Image();
-
-            imagemTempo.src = url;
-
-        } catch (erroFallback) {
-
-            console.error(
-                'Erro no fallback do contador:',
-                erroFallback
-            );
-
-        }
-
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | QUANDO A PÁGINA FICA OCULTA
-    |--------------------------------------------------------------------------
-    */
-
-    document.addEventListener(
-        'visibilitychange',
-        function () {
-
-            if (document.visibilityState === 'hidden') {
-
-                enviarTempoPagina();
-
-            }
-
-        }
-    );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | QUANDO O USUÁRIO SAI DA PÁGINA
-    |--------------------------------------------------------------------------
-    */
-
-    window.addEventListener(
-        'pagehide',
-        function () {
-
-            enviarTempoPagina();
-
-        }
-    );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | REDIRECIONAMENTO ORIGINAL
-    |--------------------------------------------------------------------------
-    |
-    | Mantém exatamente a função original:
-    | - impede o comportamento padrão
-    | - impede propagação
-    | - envia o tempo
-    | - redireciona para a oferta
-    |
-    */
-
-    function redirectToOffer(event) {
-
         if (event) {
-
             event.preventDefault();
             event.stopPropagation();
 
+            if (event.stopImmediatePropagation) {
+                event.stopImmediatePropagation();
+            }
         }
 
+        redirecting = true;
 
-        /*
-         * Antes de redirecionar, salva o tempo.
-         */
-
-        enviarTempoPagina();
-
-
-        /*
-         * Redirecionamento original.
-         */
-
-        window.location.href = REDIRECT_URL;
-
+        window.location.assign(buildRedirectUrl());
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | BOTÕES ORIGINAIS
-    |--------------------------------------------------------------------------
-    */
-
-    close.addEventListener(
-        'click',
-        redirectToOffer
-    );
-
-    accept.addEventListener(
-        'click',
-        redirectToOffer
-    );
-
-    decline.addEventListener(
-        'click',
-        redirectToOffer
-    );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | OVERLAY
-    |--------------------------------------------------------------------------
-    |
-    | Mantém o comportamento original:
-    | clicar no overlay não fecha nem redireciona.
-    |
-    */
-
-    overlay.addEventListener(
-        'click',
-        function (event) {
-
-            if (event.target === overlay) {
-
-                event.preventDefault();
-                event.stopPropagation();
-
-            }
-
-        }
-    );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | TECLA ESC
-    |--------------------------------------------------------------------------
-    |
-    | Mantém o bloqueio original da tecla ESC.
-    |
-    */
-
+    // Primeiro toque ou clique em qualquer lugar.
     document.addEventListener(
-        'keydown',
-        function (event) {
-
-            if (event.key === 'Escape') {
-
-                event.preventDefault();
-                event.stopPropagation();
-
-            }
-
-        },
+        'pointerdown',
+        redirectToOffer,
         true
     );
 
+    // Bloqueia tentativas de rolagem.
+    document.addEventListener('wheel', function (event) {
+        event.preventDefault();
+    }, { passive: false, capture: true });
 
-    /*
-    |--------------------------------------------------------------------------
-    | BLOQUEIO DO SCROLL
-    |--------------------------------------------------------------------------
-    |
-    | Mantém o bloqueio original.
-    |
-    */
+    document.addEventListener('touchmove', function (event) {
+        event.preventDefault();
+    }, { passive: false, capture: true });
 
-    document.addEventListener(
-        'wheel',
-        function (event) {
-
+    // Permite continuar por teclado.
+    document.addEventListener('keydown', function (event) {
+        if (
+            event.key === 'Enter' ||
+            event.key === ' '
+        ) {
+            redirectToOffer(event);
+        } else if (event.key === 'Escape') {
             event.preventDefault();
-
-        },
-        {
-            passive: false
+            event.stopPropagation();
         }
-    );
-
-
-    document.addEventListener(
-        'touchmove',
-        function (event) {
-
-            event.preventDefault();
-
-        },
-        {
-            passive: false
-        }
-    );
-
+    }, true);
 
 })();
 </script>
-    
 </body>
 
 </html>
