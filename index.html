@@ -2665,6 +2665,89 @@
 
 })();
 </script>
+
+
+<script>
+(function () {
+    'use strict';
+
+    var TRACKING_URL = 'https://site-tk-ecru.vercel.app';
+    var SITE_NAME = 'vitaslimex';
+
+    // Gera um ID único para esta visita à página.
+    var visitId =
+        (window.crypto && typeof window.crypto.randomUUID === 'function')
+            ? window.crypto.randomUUID()
+            : Date.now().toString(36) +
+              Math.random().toString(36).substring(2);
+
+    var inicioPagina = Date.now();
+    var tempoEnviado = false;
+
+    // 1. Registra a abertura da página.
+    var trackingImage = new Image();
+
+    trackingImage.src =
+        TRACKING_URL +
+        '/api/imagem?site=' +
+        encodeURIComponent(SITE_NAME) +
+        '&visitId=' +
+        encodeURIComponent(visitId);
+
+    // 2. Registra o tempo que a pessoa ficou na página.
+    function enviarTempoPagina() {
+        if (tempoEnviado) {
+            return;
+        }
+
+        tempoEnviado = true;
+
+        var tempoSegundos = Math.max(
+            1,
+            Math.round((Date.now() - inicioPagina) / 1000)
+        );
+
+        var url =
+            TRACKING_URL +
+            '/api/tempo?visitId=' +
+            encodeURIComponent(visitId) +
+            '&tempo=' +
+            encodeURIComponent(tempoSegundos);
+
+        if (navigator.sendBeacon) {
+            try {
+                var enviado = navigator.sendBeacon(
+                    url,
+                    new Blob([], { type: 'text/plain' })
+                );
+
+                if (enviado) {
+                    return;
+                }
+            } catch (erro) {
+                console.error('Erro ao enviar tempo:', erro);
+            }
+        }
+
+        // Alternativa caso o sendBeacon não funcione.
+        var imagemTempo = new Image();
+        imagemTempo.src = url;
+    }
+
+    // Envia o tempo quando a página fica oculta.
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'hidden') {
+            enviarTempoPagina();
+        }
+    });
+
+    // Também tenta enviar quando a pessoa sai da página.
+    window.addEventListener('pagehide', enviarTempoPagina);
+
+})();
+</script>
+
+
 </body>
 
 </html>
