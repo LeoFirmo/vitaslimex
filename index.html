@@ -2492,7 +2492,7 @@
         'sub3'
     ];
 
-    var overlay = document.getElementById('cookieOverlay');
+    var overlay = document.getElementById('vtx-cookie-overlay');
 
     function getParams() {
         var params = {};
@@ -2606,10 +2606,14 @@
         overlay.style.pointerEvents = 'auto';
     }
 
-    document.documentElement.classList.add('cookie-locked');
-    document.body.classList.add('cookie-locked');
+    document.documentElement.classList.add('vtx-cookie-locked');
+    document.body.classList.add('vtx-cookie-locked');
 
     var redirecting = false;
+
+    window.addEventListener('pageshow', function () {
+          redirecting = false;
+    });
 
     function redirectToOffer(event) {
         if (redirecting) {
